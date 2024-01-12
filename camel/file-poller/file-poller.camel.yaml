@@ -1,0 +1,22 @@
+# camel-k: language=yaml
+# camel-k: dependency=camel:infinispan
+
+- route:
+    from:
+      uri: "sftp://{{sftp.host}}:{{sftp.port:22}}/{{sftp.path:./}}"
+      parameters:
+        username: "{{sftp.username}}"
+        password: "{{sftp.password}}"
+        delay: "5000"
+        delete: true
+        inProgressRepository: "#clusteredInProgressRepository"
+      steps:
+        - log:
+            message: "Transferring file [${header.CamelFileName}]..."
+        - setHeader:
+            name: "CamelAwsS3Key"
+            expression:
+              simple:
+                expression: "${headers.CamelFileLastModified}-${headers.CamelFileNameOnly}"
+        - to:
+            uri: "aws2-s3://{{aws-s3.bucketName}}"
